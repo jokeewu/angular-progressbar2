@@ -3,14 +3,118 @@
 <head>
     <meta charset="UTF-8">
     <title>example1</title>
+    <style type="text/css">
+    html, body {
+    }
+    .wrap {
+        width: 100%;
+        float: left;
+    }
+    .circle-pb {
+        width: 200px;
+        height: 200px;
+        float: left;
+        margin: 20px;
+    }
+
+    .line-pb {
+        width: 200px;
+        height: 20px;
+        float: left;
+        margin: 20px;
+    }
+    </style>
 </head>
 <body>
+<div class="wrap">
+    <progressbar2
+        value="0.8"
+        type="circle|success"
+        animate="true"
+        class="circle-pb"
+        options="options">
+    </progressbar2>
+
+    <progressbar2
+        value="0.6"
+        type="circle|warning"
+        animate="true"
+        class="circle-pb"
+        options="options">
+    </progressbar2>
+
+    <progressbar2
+        value="0.4"
+        type="circle|danger"
+        animate="true"
+        class="circle-pb"
+        options="options">
+    </progressbar2>
+
+    <progressbar2
+        value="0.2"
+        type="circle|info"
+        animate="true"
+        class="circle-pb"
+        options="options">
+    </progressbar2>
+</div>
+
+<div class="wrap" ng-controller="demoCtrl">
+    <progressbar2
+        value="0.2"
+        type="line|success"
+        animate="true"
+        class="line-pb"
+        options="options">
+    </progressbar2>
+    <progressbar2
+        value="0.4"
+        type="line|warning"
+        animate="true"
+        class="line-pb"
+        options="options">
+    </progressbar2>
+    <progressbar2
+        value="0.6"
+        type="line|danger"
+        animate="true"
+        class="line-pb"
+        options="options">
+    </progressbar2>
+    <progressbar2
+        value="0.8"
+        type="line|info"
+        animate="true"
+        class="line-pb"
+        options="options">
+    </progressbar2>
+</div>
+
+<div class="wrap">
+    <progressbar2
+        value="0.8"
+        type="line|success"
+        animate="true"
+        class="line-pb"
+        show="true"
+        key="lineProgressbar1"
+        options="options">
+    </progressbar2>
+</div>
 
 <script src="../bower_components/angular/angular.js"></script>
-<script src="../bower_components/progressbar.js/progressbar.js"></script>
+<script src="../bower_components/progressbar.js/dist/progressbar.js"></script>
 <script src="../src/angular-progressbar2.js"></script>
 <script type="text/javascript">
-angular.module('progressApp', []);
+angular.module('progressApp', ['progressbar2'])
+.controller('demoCtrl', ['$scope', '$pbService', '$timeout',
+     function($scope, $pbService, $timeout) {
+    $timeout(function() {
+        $pbService.animate('lineProgressbar1', 0.2);
+        $pbService.remove('lineProgressbar1');
+    }, 1000);
+}]);
 </script>
 </body>
 </html>
