@@ -1,173 +1,164 @@
 /**
- * Progressbar for angularjs, require 'angularjs' and progressbar.js
- * @author jkwu
- */
+* Progressbar for angularjs, require 'angularjs' and progressbar.js
+* @author jkwu
+*/
 ;(function(root) {
-  
-  function factory(angular, ProgressBar) {
 
-    // default options for progress bar
-    var DEFAULTS = {
-      strokeWidth: 10,
-      trailWidth: 10,
-      easing: 'linear',
-      trailColor: '#f0f0f0',
-      text: {
-        value: '0%',
-        style: {
-          // color: '#ffffff'
-        }
-      },
-      svgStyle: {
-        width: '100%',
-        height: '100%'
-      },
-      step: function(state, bar) {
-        bar.setText((bar.value() * 100).toFixed(0) + '%');
-      }
-    };
+function factory(angular, ProgressBar, ProgressBar2Styles) {
 
-    // progress bar type like 'bootstrap'
-    var BAR_TYPES = {
-      success: {
-        color: '#5cb85c',
-      },
-      info: {
-        color: '#5bc0de',
-      },
-      warning: {
-        color: '#f0ad4e',
-      },
-      danger: {
-        color: '#d9534f'
-      }
-    };
+angular.module('com.pb2', [])
 
-    angular.module('progressbar2', [])
+// Outer interface
+.factory('$pb2Service', ['$rootScope', function($rootScope) {
+    return {
 
-    .factory('$pbService', ['$rootScope', function($rootScope) {
-      return {
+        /**
+         * @param  {String}   key
+         * @param  {Number}   progress
+         * @param  {Object}   options
+         * @param  {Function} cb
+         */
         animate: function (key, progress, options, cb) {
-          $rootScope.$broadcast('progressbar2:animate', key, progress, options, cb);
+            $rootScope.$broadcast('pb2:animate', key, progress, options, cb);
         },
 
+        /**
+         * @param {String} key
+         * @param {Number} progress
+         */
         set: function (key, progress) {
-          $rootScope.$broadcast('progressbar2:set', key, progress);
+            $rootScope.$broadcast('pb2:set', key, progress);
         },
 
+        /**
+         * @param  {String} key
+         */
         stop: function (key) {
-          $rootScope.$broadcast('progressbar2:stop', key);
-        },
-
-        remove: function (key) {
-          $rootScope.$broadcast('progressbar2:remove', key);
+            $rootScope.$broadcast('pb2:stop', key);
         }
-      };
-    }])
+    };
+}])
 
-    /**
-     * @param {Float} value Must be '<=' 1 and '>=' 0
-     * @param {String} type Bar shape and color type, like 'circle|info' 
-     * @param {Boolean} animate When show animation or not
-     * @param {Boolean} show Show it now or not
-     * @param {options} options User options
-     * @example
-     * <progressbar2
-     *   value="0.6"
-     *   type="'circle|info'"
-     *   animate="true"
-     *   options="userOptions">
-     * </progressbar2>
-     */
-    .directive('progressbar2', ['$timeout', function($timeout) {
-        return {
-          restrict: 'AE',
-          replace: true,
-          scope: {
-              options: '='
-          },
-          templateUrl: 'tpl/progressbar2.html',
-          link: function(scope, element, attrs) {
-
+/**
+* @param {Float} value Must be '<=' 1 and '>=' 0
+* @param {String} type Bar shape and color type, like 'circle|info' 
+* @param {Boolean} animate When show animation or not
+* @param {Boolean} show Show it now or not
+* @param {options} options User options
+* @example
+* <progressbar2
+*   value="0.6"
+*   type="'circle|info'"
+*   animate="true"
+*   options="userOptions">
+* </progressbar2>
+*/
+.directive('progressbar2', ['$timeout', function($timeout) {
+    return {
+        restrict: 'AE',
+        replace: true,
+        scope: {
+            options: '='
+        },
+        templateUrl: 'tpl/pb2.html',
+        link: function(scope, element, attrs) {
             var el = element[0], 
-              types = attrs.type.split('|');
+                types = attrs.type.split('|'),
+                typeMap = {
+                    line: 'Line',
+                    circle: 'Circle'
+                };
 
             scope.value = attrs.value;
             // Translate function name of ProgressBar,
             // Circle, Line
-            scope.funcName = types[0].charAt(0).toUpperCase() + types[0].slice(1);
+            scope.funcName = typeMap[ types[0] ];
+
             scope.barType = types[1];
             scope.showMethod = attrs.animate ? 'animate' : 'set';
             scope.key = attrs.key;
-            scope.progressBar = null;
-            scope.show = typeof attrs.show === 'undefined' ? true : attrs.show;
+            scope.progressbar = null;
+            scope.defStyles = {};
+            scope.barStyles = {};
+            scope.opts = {};
 
-            // If progress bar type is line, set text color is white
-            if (scope.funcName === 'Line') {
-              DEFAULTS.text.style.color = '#ffffff';
-            }
+            // Show immediately for default
+            scope.show = typeof attrs.show === 'undefined' ? true : attrs.show;
 
             // Merge options
             // User options should have high level to cover others
-            scope.options = angular.extend(DEFAULTS, 
-              BAR_TYPES[scope.barType], scope.options || {});
+            if (typeof ProgressBar2Styles === 'object') {
+                scope.defStyles = ProgressBar2Styles.defStyles || {};
+                scope.barStyles = ProgressBar2Styles.barStyles || {};
+            }
 
-            scope.$on('progressbar2:animate', function(e, key, value, opts, cb) {
-              if (key === scope.key) {
-                scope.progressBar.animate(value, opts, cb);
-              }
+            scope.opts = angular.merge({}, scope.defStyles, 
+                scope.barStyles[scope.barType]);
+
+            scope.$watchCollection('options', function(newOpts) {
+
+                scope.opts = angular.merge({}, scope.opts, newOpts || {});
+
+                var color4lpb = scope.opts.text.style.color4lpb;
+                if (scope.funcName === typeMap.line &&
+                    typeof color4lpb === 'string') {
+                    scope.opts.text.style.color = color4lpb;
+                }
+
+                el.innerHTML = '';
+                scope.progressbar = new ProgressBar[scope.funcName](el, scope.opts);
+                // Setting value
+                if (scope.show) {
+                    scope.progressbar[scope.showMethod](scope.value);
+                }
             });
 
-            scope.$on('progressbar2:set', function(e, key, value, opts, cb) {
-              if (key === scope.key) {
-                scope.progressBar.animate(value, opts, cb);
-              }
+            /************************************
+            * Outer interface handler
+            *************************************/
+
+            scope.$on('pb2:animate', function(e, key, value, opts, cb) {
+                if (key === scope.key) {
+                    scope.progressbar.animate(value, opts, cb);
+                }
             });
 
-            scope.$on('progressbar2:stop', function(e, key) {
-              if (key === scope.key) {
-                scope.progressBar.stop();
-              }
+            scope.$on('pb2:set', function(e, key, value, opts, cb) {
+                if (key === scope.key) {
+                    scope.progressbar.animate(value, opts, cb);
+                }
             });
 
-            scope.$on('progressbar2:remove', function(e, key) {
-              if (key === scope.key) {
-                el.remove();
-                scope.progressbar = null;
-              }
+            scope.$on('pb2:stop', function(e, key) {
+                if (key === scope.key) {
+                    scope.progressbar.stop();
+                }
             });
 
             scope.$on('$destroy', function(e, key) {
-              el.innerHTML = '';
-              scope.progressbar = null;
+                el.innerHTML = '';
+                scope.progressbar = null;
             });
+        } // link
+    };
+}])
 
-            // Initilize
-            scope.progressBar = new ProgressBar[scope.funcName](el, scope.options);
-
-            // Setting value
-            if (scope.show) {
-              scope.progressBar[scope.showMethod](scope.value);
-            }
-          }
-        };
-    }])
-
-    .run(['$templateCache', function($templateCache) {
-      $templateCache.put('tpl/progressbar2.html', 
+.run(['$templateCache', function($templateCache) {
+    $templateCache.put('tpl/pb2.html', 
         '<div class="progressbar2"></div>'
-      );
-    }]);
-  }
+    );
+}]);
 
-  if (typeof exports === 'object') {
+}
+
+if (typeof exports === 'object') {
     // CommonJS
     module.exports = factory();
-  } else if (typeof define === 'function' && define.amd) {
+} else if (typeof define === 'function' && define.amd) {
     // AMD module
     define(['angular', 'progressbar'], factory);
-  } else {
+} else {
     // Browser global
-    factory(root.angular, root.ProgressBar);
-  }
+    factory(root.angular, root.ProgressBar, root.ProgressBar2Styles);
+}
 })(window);

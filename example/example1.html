@@ -105,14 +105,22 @@
 
 <script src="../bower_components/angular/angular.js"></script>
 <script src="../bower_components/progressbar.js/dist/progressbar.js"></script>
+<script src="../src/angular-progressbar2-styles.js"></script>
 <script src="../src/angular-progressbar2.js"></script>
 <script type="text/javascript">
-angular.module('progressApp', ['progressbar2'])
-.controller('demoCtrl', ['$scope', '$pbService', '$timeout',
-     function($scope, $pbService, $timeout) {
+angular.module('progressApp', ['com.pb2'])
+.controller('demoCtrl', ['$scope', '$pb2Service', '$timeout',
+     function($scope, $pb2Service, $timeout) {
+
+    // $scope.options = {
+    //     color: '#0000ff'
+    // };
+
     $timeout(function() {
-        $pbService.animate('lineProgressbar1', 0.2);
-        $pbService.remove('lineProgressbar1');
+        $pb2Service.animate('lineProgressbar1', 0.2);
+        // $scope.options = {
+        //     color: '#ff0000'
+        // };
     }, 1000);
 }]);
 </script>
